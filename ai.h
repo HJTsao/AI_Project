@@ -2,14 +2,36 @@
 #define AI_H
 #include<iostream>
 #include<list>
-struct node{
-	int redWin;
-	int greenWin;
-	int total;
-	int board[19][19];
-	node* parent;
-	std::list<node*> children;
+struct coordinate{
+  int row;
+  int col;
 };
+
+struct node{
+  int redWin;
+  int greenWin;
+  int total;
+  int round;
+  int board[19][19];
+  int available[2][8];
+
+  //From what action
+  int type;
+  int rotate;
+  int row;
+  int col;
+
+  node* parent;
+  std::list<node*> children;
+};
+
+struct tableElement{
+  int redWin;
+  int greenWin;
+  int total;
+  node* link;
+};
+
 class ai{
   public:
     //Constructor: Initialize game information.
@@ -23,16 +45,21 @@ class ai{
 	void ai_greeting();
 
 	//AI MCTS
-	//void ai_play(int &(curBoard)[19][19], int &(aiResult)[3]);
+	void ai_play(int (&curBoard)[19][19],
+	             int (&curAvailable)[2][8],
+				 int round,
+				 int term,
+				 int (&aiResult)[3]);
 
 	//UCT select
 	//node* uct();
 
 	//Expand all possible move.
-	void feasible_way(int (&curBoard)[19][19],
-	                  int (&curAvailable)[2][8],
-					  node &root,
+	void feasible_way(node* root,
 					  int term);
+
+	//Simulate
+	void simulate_node(node* start);
 
 	//Update board with a legal move.
 	void update_board(int (&curBoard)[19][19],
@@ -43,7 +70,19 @@ class ai{
 					  int term);
 
 	//Initialize new feasible move.
-	void initialize_node(node* feasMove);
+	inline void initialize_node(node* feasMove,
+	                            node* parent,
+	                            int (&curBoard)[19][19],
+								int (&curAvailable)[2][8],
+	                            int round,
+								int type,
+								int rotate,
+								int row,
+								int col);
+
+    //Initialize or update a state with a exist node.
+    inline void initialize_element(tableElement* curElement,
+	                               node* curNode);
 
 	//Check legal move.
 	bool check_chessman(int (&curBoard)[19][19],
@@ -51,6 +90,9 @@ class ai{
 						int row,
 						int col,
 						int term); 
+
+	//Judge game result.
+    int judge(int (&chessBoard)[19][19]);	
 
   private:
 	int chessBoard[19][19];

@@ -715,9 +715,13 @@ void game_main(){
 
 	  //幫助
 	  if(input == "help"){
-	    std::cout << "s : 存檔" << std::endl << "b ：回上一手" << std::endl;
+	    std::cout << "s : 存檔" << std::endl << "b ：回上一手" << std::endl << "ai : Call AI for next move." << std::endl;
 	  }
-
+      else if(input == "ai"){
+		int aiResult[3];
+		AI.ai_play(chessBoard, available, round, term, aiResult);
+	    break;
+	  }
       //存檔
 	  else if(input == "s"){
 	    std::cout << "should ask file name and copy log" << std::endl;

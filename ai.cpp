@@ -1,7 +1,10 @@
 #include<iostream>
 #include<string.h>
+#include<stdlib.h>
+#include<time.h>
 #include"ai.h"
 #include"chessman.h"
+#include<list>
 ai::ai(){
   //Board init
   for(int i=0; i<19; i++){
@@ -42,8 +45,6 @@ ai::ai(){
   rotateLimit[5] = 4;
   rotateLimit[6] = 2;
   rotateLimit[7] = 1;
-
-
 
   //Chessman init
   for(int i=0; i<4; i++){
@@ -152,6 +153,302 @@ void ai::ai_greeting(){
   std::cout << "Hi there!" << std::endl;
 }
 
+int ai::judge(int (&chessBoard)[19][19]){
+ int checkBoard[13][13];
+  for(int i=0; i<13; i++){
+    for(int j=0; j<13; j++){
+	  checkBoard[i][j] = 0;
+	}
+  }
+
+  //增加邊界
+  for(int i=2; i<17; i++){
+    chessBoard[2][i] = 4;
+	chessBoard[i][2] = 4;
+	chessBoard[16][i] = 4;
+	chessBoard[i][16] = 4;
+  }
+
+  //檢查死子
+  for(int i=1; i<=2; i++){
+    for(int j=0; j<13; j++){
+	  for(int k=0; k<13; k++){
+	    //迴避重複檢查
+	    if(checkBoard[j][k] == 1) continue;
+		if(chessBoard[j+3][k+3] == i){
+		  //開始定位整個段落
+		  //Section: 0=> empty; 1=> part of this section
+		  int section[13][13];
+		  for(int l=0; l<13; l++){
+		    for(int m=0; m<13; m++){
+			  section[l][m] = 0;
+			}
+		  }
+          std::list<coordinate> path;
+		  coordinate curCoor;
+		  curCoor.row = j+3;
+		  curCoor.col = k+3;
+		  path.push_back(curCoor);
+
+		  while(!(path.empty())){
+		    curCoor = path.front();
+		    path.pop_front();
+            
+			if(checkBoard[curCoor.row-3][curCoor.col-3] == 0){
+			  //標記現在的位置
+			  section[curCoor.row-3][curCoor.col-3] = 1;
+		      checkBoard[curCoor.row-3][curCoor.col-3] = 1;
+			  //像八個方向拓展
+			  coordinate nextCoor;
+			  //左上
+			  if(chessBoard[curCoor.row-1][curCoor.col-1] == i){
+			    nextCoor.row = curCoor.row - 1;
+				nextCoor.col = curCoor.col - 1;
+				path.push_back(nextCoor);
+		      }
+			  //上
+			  if(chessBoard[curCoor.row-1][curCoor.col] == i){
+			    nextCoor.row = curCoor.row - 1;
+				nextCoor.col = curCoor.col;
+				path.push_back(nextCoor);
+		      }
+			  //右上
+			  if(chessBoard[curCoor.row-1][curCoor.col+1] == i){
+			    nextCoor.row = curCoor.row - 1;
+				nextCoor.col = curCoor.col + 1;
+				path.push_back(nextCoor);
+		      }
+			  //右
+			  if(chessBoard[curCoor.row][curCoor.col+1] == i){
+			    nextCoor.row = curCoor.row;
+				nextCoor.col = curCoor.col + 1;
+				path.push_back(nextCoor);
+		      }
+			  //右下
+			  if(chessBoard[curCoor.row+1][curCoor.col+1] == i){
+			    nextCoor.row = curCoor.row + 1;
+				nextCoor.col = curCoor.col + 1;
+				path.push_back(nextCoor);
+		      }
+			  //下
+			  if(chessBoard[curCoor.row+1][curCoor.col] == i){
+			    nextCoor.row = curCoor.row + 1;
+				nextCoor.col = curCoor.col;
+				path.push_back(nextCoor);
+		      }
+			  //左下
+			  if(chessBoard[curCoor.row+1][curCoor.col-1] == i){
+			    nextCoor.row = curCoor.row + 1;
+				nextCoor.col = curCoor.col - 1;
+				path.push_back(nextCoor);
+		      }
+			  //左
+			  if(chessBoard[curCoor.row][curCoor.col-1] == i){
+			    nextCoor.row = curCoor.row;
+				nextCoor.col = curCoor.col - 1;
+				path.push_back(nextCoor);
+		      }
+            }			
+		  }
+
+		  //開始檢查死活
+		  bool alive = false;
+		  int border = 0;
+		  bool continueBorder = false;
+		  //遊走邊界檢查
+		  for(int l=0; l<13; l++){
+		    if(section[0][l] == 1){
+			  if(!continueBorder){
+			    border++;
+				continueBorder = true;
+			  }
+			}
+		    else continueBorder = false;
+		  }
+		  for(int l=1; l<13; l++){
+		    if(section[l][12] == 1){
+			  if(!continueBorder){
+			    border++;
+				continueBorder = true;
+			  }
+			}
+			else continueBorder = false;
+		  }
+
+		  for(int l=11; l>=0; l--){
+		    if(section[12][l] == 1){
+		      if(!continueBorder){
+			      border++;
+			   	  continueBorder = true;
+			  }
+			}
+			else continueBorder = false;
+		  }
+		  for(int l=11; l>=0; l--){
+		    if(section[l][0] == 1){
+		      if(!continueBorder){
+			      border++;
+			   	  continueBorder = true;
+			  }
+			}
+			else continueBorder = false;
+		  }
+		  //邊界遊走完成
+		  if(border >= 2){
+		    alive = true;
+		  }
+          else{
+		    //掃描
+			//水平掃描
+            for(int l=0; l<13; l++){
+			  for(int m=0; m<13; m++){
+			    if(section[l][m] != 1){
+				  section[l][m] = 2;
+				}
+				else break;
+			  }
+			  for(int m=12; m>=0; m--){
+			    if(section[l][m] != 1){
+				  section[l][m] = 2;
+				}
+			    else break;
+			  }
+			}
+            //垂直掃描
+            for(int l=0; l<13; l++){
+			  for(int m=0; m<13; m++){
+			    if(section[m][l] != 1){
+				  section[m][l] = 2;
+				}
+				else break;
+			  }
+			  for(int m=12; m>=0; m--){
+			    if(section[m][l] != 1){
+				  section[m][l] = 2;
+				}
+			    else break;
+			  }
+			}
+			//檢查是否還有空地存在
+            for(int l=0; l<13; l++){
+			  for(int m=0; m<13; m++){
+			    if(section[l][m] == 0){
+				  alive = true;
+				  break;
+				}
+				//std::cout << section[l][m] << " ";
+			  }
+			  //std::cout << std::endl;
+			  if(alive)break;
+			}
+		  }
+		  if(alive){
+		    for(int l=0; l<13; l++){
+			  for(int m=0; m<13; m++){
+			    if(section[l][m] == 1){
+				  chessBoard[l+3][m+3] = i+4;
+				}
+			  }
+			}
+		  }
+		}
+	  }
+    }
+  }
+  //領土結算
+  int firstArea = 0;
+  int secondArea = 0;
+  for(int i=0; i<13; i++){
+    for(int j=0; j<13; j++){
+	  //由空地開始擴散
+	  if(chessBoard[i+3][j+3] < 3){
+	    int firstDead = 0;
+		int secondDead = 0;
+		int counter = 0;
+		bool firstBorder = false;
+		bool secondBorder = false;
+		coordinate curCoor;
+		curCoor.row = i;
+		curCoor.col = j;
+		std::list<coordinate> path;
+		path.push_back(curCoor);
+		while(!(path.empty())){
+		  curCoor = path.front();
+		  path.pop_front();
+		  //碰到邊界則停止
+          if(chessBoard[curCoor.row+3][curCoor.col+3] == 4) continue;
+		  //碰到先手方
+		  if(chessBoard[curCoor.row+3][curCoor.col+3] == 5){
+		    firstBorder = true;
+			continue;
+		  }
+		  //碰到後手方
+		  if(chessBoard[curCoor.row+3][curCoor.col+3] == 6){
+		    secondBorder = true;
+			continue;
+		  }
+		  //碰到已經結算過得
+		  if(chessBoard[curCoor.row+3][curCoor.col+3] == 7) continue;
+		  //其他情況
+		  switch(chessBoard[curCoor.row+3][curCoor.col+3]){
+		    //空地
+		    case 0:
+			  counter++;
+			  break;
+			//先手方死子
+			case 1:
+			  firstDead++;
+              break;
+			//後手方死子
+			case 2:
+			  secondDead++;
+			  break;
+			//星位
+			case 3:
+			  counter++;
+			  break;
+			default:
+			  break;
+		  }
+		  //標記
+		  chessBoard[curCoor.row+3][curCoor.col+3] = 7;
+          coordinate nextCoor;
+		  //右
+		  nextCoor.row = curCoor.row;
+		  nextCoor.col = curCoor.col+1;
+		  path.push_back(nextCoor);
+		  //下
+		  nextCoor.row = curCoor.row+1;
+		  nextCoor.col = curCoor.col;
+		  path.push_back(nextCoor);
+		  //左
+		  nextCoor.row = curCoor.row;
+		  nextCoor.col = curCoor.col-1;
+		  path.push_back(nextCoor);
+		  //上
+		  nextCoor.row = curCoor.row-1;
+		  nextCoor.col = curCoor.col;
+		  path.push_back(nextCoor);
+
+		}
+		//領地判別完成
+		if(firstBorder && !secondBorder){
+		  firstArea += (counter + secondDead*2);
+		}
+		else if(!firstBorder && secondBorder){
+		  secondArea += (counter + firstDead*2);
+		}
+
+	  }
+	}
+  }
+  //std::cout << "先手領土 : " << firstArea << std::endl;
+  //std::cout << "後手領土 : " << secondArea << std::endl;
+  if(firstArea > secondArea)return 1;
+  else if(secondArea > firstArea)return 2;
+  else return 0;
+} 
+
 bool ai::check_chessman(int (&curBoard)[19][19],
                         int chessIndex,
 						int row,
@@ -161,7 +458,6 @@ bool ai::check_chessman(int (&curBoard)[19][19],
   for(int i=0; i<4; i++){
     for(int j=0; j<4; j++){
 	  if(chessMan[chessIndex][i][j] == 1 && (curBoard[row+i][col+j] != 0 && curBoard[row+i][col+j] != 3)){
-        std::cout << "所選位置重疊到其他棋子" << std::endl;
 	    return false;
 	  }
 	}
@@ -196,7 +492,6 @@ bool ai::check_chessman(int (&curBoard)[19][19],
       }
 	}
   }
-  std::cout << "沒有相連或不在星位上" << std::endl;
   return false;
   
 }
@@ -209,33 +504,36 @@ void ai::ai_available(int (&curAvailable)[2][8]){
   }
 }
 
-void ai::feasible_way(int (&curBoard)[19][19],
-                  int (&curAvailable)[2][8],
-				  node &root,
-				  int term){
+void ai::feasible_way(node* root, int term){
   //For all available chessman
   for(int i=0; i<8; i++){
-    if(curAvailable[term][i] > 0){
+    if((root->available)[term-1][i] > 0){
 	  //For all direction
 	  for(int j=0; j<rotateLimit[i]; j++){
 	    int chessIndex = typeStart[i] + j;
 		//For all position
 		for(int k=3; k<16; k++){
 		  for(int l=3; l<16; l++){
-		    if((check_chessman(curBoard, chessIndex, k, l, term)) == true){
+		    if((check_chessman((root->board), chessIndex, k, l, term)) == true){
 			  //Possible move
 			  //Board after possible move
 			  int newBoard[19][19];
-			  update_board(curBoard, newBoard, chessIndex, k, l, term);
+			  update_board((root->board), newBoard, chessIndex, k, l, term);
+
+			  //Available chessman after possible move
+              int newAvailable[2][8];
+			  memcpy(&newAvailable, &(root->available), sizeof(newAvailable));
+			  newAvailable[term-1][i]--;
 
 			  //Create new node
 			  node* feasMove = new node;
-			  initialize_node(feasMove);
-			  memcpy(&(feasMove->board), &newBoard, sizeof(feasMove->board));
-			  (feasMove->parent) = &root;
+			  initialize_node(feasMove, root, newBoard, newAvailable, (root->round)+1, i, j, k, l);
+			  //memcpy(&(feasMove->board), &newBoard, sizeof(feasMove->board));
+			  //(feasMove->parent) = &root;
 
 			  //Append to root
-			  (root.children).push_back(feasMove);
+			  (root->children).push_back(feasMove);
+			  //std::cout << "Type[" << i << "] can be place on (" << k << ", " << l << ") with rotation " << j << std::endl;
 			}
 		  }
 		}
@@ -244,10 +542,49 @@ void ai::feasible_way(int (&curBoard)[19][19],
   }
 }
 
-void ai::initialize_node(node* feasMove){
+void ai::simulate_node(node* start){
+  
+  while(start->round != 18){
+    //std::cout << "Simulate start." << std::endl;
+    //Determine term
+    int term = start->round % 2;
+
+    int type, rotate, row, col;
+	bool legalMove = false;
+	//Choose type
+	while(!legalMove){
+	  type = rand() % 8;
+      while(available[term][type] == 0)type = rand() % 8;
+	  rotate = rand() % rotateLimit[type];
+	  row = rand() % 13;
+	  col = rand() % 13;
+	  legalMove =  check_chessman(start->board, typeStart[type]+rotate, row+3, col+3, term+1);
+	}
+    update_board(start->board, start->board, typeStart[type]+rotate, row+3, col+3, term+1);
+	(start->round)++;
+  }
+  //std::cout << "Simulation complete." << std::endl;
+
+}
+inline void ai::initialize_node(node* feasMove, node* parent, int (&curBoard)[19][19], int (&curAvailable)[2][8], int round, int type, int rotate, int row, int col){
   (feasMove->redWin) = 0;
   (feasMove->greenWin) = 0;
   (feasMove->total) = 0;
+  (feasMove->round) = round;
+  (feasMove->parent) = parent;
+  (feasMove->type) = type;
+  (feasMove->rotate) = rotate;
+  (feasMove->row) = row;
+  (feasMove->col) = col;
+  memcpy(&(feasMove->board), &curBoard, sizeof(feasMove->board));
+  memcpy(&(feasMove->available), &curAvailable, sizeof(feasMove->available));
+}
+
+inline void ai::initialize_element(tableElement* curElement, node* curNode){
+  curElement->redWin = curNode->redWin;
+  curElement->greenWin = curNode->greenWin;
+  curElement->total = curNode->total;
+  curElement->link = curNode;
 }
 
 void ai::update_board(int (&curBoard)[19][19],
@@ -266,19 +603,104 @@ void ai::update_board(int (&curBoard)[19][19],
   }
 }
 /*
-void ai::ai_play(int &(curBoard)[19][19], int &(aiResult)[3]){
+node* ai::uct(node* root){
+  */
+
+void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, int term, int (&aiResult)[3]){
+  srand(time(NULL));
+  
+  //Fixed round
+  int curRound = round-1;
+  
+  //Create empty node table
+  std::list<tableElement> nodeTable; 
+  
   //建立MCTS root
   node root;
-  root.redWin = 0;
-  root.greenWin = 0;
-  root.total = 0;
-  root.board = curBoard;
-  root.parent = NULL;
-  
+  initialize_node(&root, NULL, curBoard, curAvailable, curRound, 0, 0, 0, 0);
+  /*memcpy(&(root.board), &curBoard, sizeof(root.board));
+  root.parent = NULL;*/
+  tableElement element;
+  nodeTable.push_back(element);
+  initialize_element(&(nodeTable.back()), &root);
+
+  //feasible_way(curBoard, curAvailable, root, round, term);
+    
   //開始MCTS
   int iteration = 0;
-  while(iteration < 100){
+  while(iteration < 10000){
+    //std::cout << "Current root child :" << root.children.size() << std::endl;
+    //Select
+	node* mctsStart = &root;
+    //node* start = uct(&root, term);
+    //Expand
+	//If start is leaf node but not ended state
+	node* simStart;
+	
+	if(mctsStart->round != 18){
+	  if((mctsStart->children).size() == 0){
+	    feasible_way(mctsStart, term);
+        std::cout << "Found " << (mctsStart->children).size() << " way(s)." << std::endl;
+      }
+	  //Then randomly pick a possible move
+      int index = rand() % ((mctsStart->children).size());
+	  std::list<node*>::iterator it = (mctsStart->children).begin();
+	  for(int i=0; i<index; i++)it++;
+	  simStart = *it;
+	  //std::cout << "Randomly pike Type[" << simulate->type << "]_rotate[" << simulate->rotate << "] at (" << simulate->row << ", " << simulate->col << ")" << std::endl;
+	}
+	else simStart = mctsStart;
+    node simCopy = (*simStart);
+	//std::cout << "Test :(" << simStart->row << ", " << simStart->col << ")" << std::endl;
+	//Simulate : simulate with a copy version!!
+	simulate_node(&simCopy);
+	//To do: simulate function
+    int winner = judge(simCopy.board);
+
+	//Update
+	node* temp = simStart;
+	switch(winner){
+	  case 1:
+	    while(temp != NULL){
+	      temp->total++;
+		  temp->redWin++;
+		  temp = temp->parent;
+		}
+		break;
+	  case 2:
+	    while(temp != NULL){
+		  temp->total++;
+		  temp->greenWin++;
+		  temp = temp->parent;
+		}
+		break;
+    }
     iteration++;
   }
+  node* result;
+  double maxRate = -1.0;
+  double curRate = 0.0; 
+  std::list<node*>::iterator it = root.children.begin();
+  while(it != root.children.end()){
+    if(term == 1){
+	  curRate = (double)((*it)->redWin) / (double)((*it)->total);
+	  if(curRate > maxRate){
+	    maxRate = curRate;
+		result = *it;
+	  }
+	}
+	else{
+      curRate = (double)((*it)->greenWin) / (double)((*it)->total);
+	  if(curRate > maxRate){
+	    maxRate = curRate;
+		result = *it;
+	  }
+	}
+	it++;
+  }
+  std::cout << "Max win rate is :" << maxRate << std::endl;
+  std::cout << "Win :" << result->greenWin << std::endl;
+  std::cout << "Total :" << result->total << std::endl;
+  std::cout << "AI choose type[" << result->type << "], rotate[" << result->rotate << "], at (" << (result->row)-3 << ", " << (result->col)-3 << ")." << std::endl;
 }
-*/
+
