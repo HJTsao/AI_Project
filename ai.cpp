@@ -505,18 +505,22 @@ void ai::ai_available(int (&curAvailable)[2][8]){
 }
 
 void ai::feasible_way(node* root, int term){
+
   //For all available chessman
   for(int i=0; i<8; i++){
     if((root->available)[term-1][i] > 0){
-	  //For all direction
+
+	  //For all rotation
 	  for(int j=0; j<rotateLimit[i]; j++){
 	    int chessIndex = typeStart[i] + j;
+
 		//For all position
 		for(int k=3; k<16; k++){
 		  for(int l=3; l<16; l++){
 		    if((check_chessman((root->board), chessIndex, k, l, term)) == true){
-			  //Possible move
-			  //Board after possible move
+
+			  //Possible move founded.
+			  //Board after possible move.
 			  int newBoard[19][19];
 			  update_board((root->board), newBoard, chessIndex, k, l, term);
 
@@ -528,12 +532,9 @@ void ai::feasible_way(node* root, int term){
 			  //Create new node
 			  node* feasMove = new node;
 			  initialize_node(feasMove, root, newBoard, newAvailable, (root->round)+1, i, j, k, l);
-			  //memcpy(&(feasMove->board), &newBoard, sizeof(feasMove->board));
-			  //(feasMove->parent) = &root;
 
 			  //Append to root
 			  (root->children).push_back(feasMove);
-			  //std::cout << "Type[" << i << "] can be place on (" << k << ", " << l << ") with rotation " << j << std::endl;
 			}
 		  }
 		}
@@ -543,30 +544,45 @@ void ai::feasible_way(node* root, int term){
 }
 
 void ai::simulate_node(node* start){
-  
-  while(start->round != 18){
-    //std::cout << "Simulate start." << std::endl;
-    //Determine term
-    int term = start->round % 2;
+ 
 
+  //Check if not reach end.
+  while(start->round != 18){
+
+    //Determine term
+    int term = (start->round % 2) + 1;
     int type, rotate, row, col;
 	bool legalMove = false;
-	//Choose type
+
+	//Make a move.
 	while(!legalMove){
+
+	  //Determine type.
 	  type = rand() % 8;
-      while(available[term][type] == 0)type = rand() % 8;
+      while((start->available)[term-1][type] == 0)type = rand() % 8;
+
+	  //Determine rotation.
 	  rotate = rand() % rotateLimit[type];
+
+	  //Determine position.
 	  row = rand() % 13;
 	  col = rand() % 13;
-	  legalMove =  check_chessman(start->board, typeStart[type]+rotate, row+3, col+3, term+1);
+
+	  //Check legal move.
+	  legalMove =  check_chessman(start->board, typeStart[type]+rotate, row+3, col+3, term);
 	}
-    update_board(start->board, start->board, typeStart[type]+rotate, row+3, col+3, term+1);
+
+	//Update current available.
+    (start->available)[term-1][type] -= 1;
+
+	//Update board.
+    update_board(start->board, start->board, typeStart[type]+rotate, row+3, col+3, term);
 	(start->round)++;
   }
-  //std::cout << "Simulation complete." << std::endl;
-
 }
+
 inline void ai::initialize_node(node* feasMove, node* parent, int (&curBoard)[19][19], int (&curAvailable)[2][8], int round, int type, int rotate, int row, int col){
+  //Initial state(node) parameter.
   (feasMove->redWin) = 0;
   (feasMove->greenWin) = 0;
   (feasMove->total) = 0;
@@ -593,7 +609,10 @@ void ai::update_board(int (&curBoard)[19][19],
 					  int row,
 					  int col,
 					  int term){
+  //First copy old board to new board.
   memcpy(&newBoard, &curBoard, sizeof(newBoard));
+
+  //Then add a move to board.
   for(int i=0; i<4; i++){
     for(int j=0; j<4; j++){
 	  if(chessMan[chessIndex][i][j]){
@@ -609,7 +628,7 @@ node* ai::uct(node* root){
 void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, int term, int (&aiResult)[3]){
   srand(time(NULL));
   
-  //Fixed round
+  //Fixed round(框架內的round是未落子的round, 但ai要的round是當下state所在的)
   int curRound = round-1;
   
   //Create empty node table
@@ -618,43 +637,47 @@ void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, i
   //建立MCTS root
   node root;
   initialize_node(&root, NULL, curBoard, curAvailable, curRound, 0, 0, 0, 0);
-  /*memcpy(&(root.board), &curBoard, sizeof(root.board));
-  root.parent = NULL;*/
+  
   tableElement element;
   nodeTable.push_back(element);
   initialize_element(&(nodeTable.back()), &root);
-
-  //feasible_way(curBoard, curAvailable, root, round, term);
     
   //開始MCTS
   int iteration = 0;
-  while(iteration < 10000){
-    //std::cout << "Current root child :" << root.children.size() << std::endl;
+  while(iteration < 1000000){
+
     //Select
 	node* mctsStart = &root;
-    //node* start = uct(&root, term);
+    
     //Expand
-	//If start is leaf node but not ended state
 	node* simStart;
 	
+	//Check if start is ended state or not.
 	if(mctsStart->round != 18){
+
+	  //Check if start is leaf node.
 	  if((mctsStart->children).size() == 0){
-	    feasible_way(mctsStart, term);
-        std::cout << "Found " << (mctsStart->children).size() << " way(s)." << std::endl;
+	    
+	    //Expand all possible move.
+		feasible_way(mctsStart, term);
+
+		//Log on console how many feasible move.
+        std::cout << "Found " << (mctsStart->children).size() << " move(s)." << std::endl;
       }
+
 	  //Then randomly pick a possible move
       int index = rand() % ((mctsStart->children).size());
 	  std::list<node*>::iterator it = (mctsStart->children).begin();
 	  for(int i=0; i<index; i++)it++;
 	  simStart = *it;
-	  //std::cout << "Randomly pike Type[" << simulate->type << "]_rotate[" << simulate->rotate << "] at (" << simulate->row << ", " << simulate->col << ")" << std::endl;
 	}
 	else simStart = mctsStart;
-    node simCopy = (*simStart);
-	//std::cout << "Test :(" << simStart->row << ", " << simStart->col << ")" << std::endl;
-	//Simulate : simulate with a copy version!!
+	node simCopy = (*simStart);
+
+	//Simulate: simulate with a copy version.
 	simulate_node(&simCopy);
-	//To do: simulate function
+
+	//Judge result(should add area).
     int winner = judge(simCopy.board);
 
 	//Update
@@ -698,8 +721,10 @@ void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, i
 	}
 	it++;
   }
+  
   std::cout << "Max win rate is :" << maxRate << std::endl;
-  std::cout << "Win :" << result->greenWin << std::endl;
+  if(term == 1)std::cout << "Win :" << result->redWin << std::endl;
+  else std::cout << "Win :" << result->greenWin << std::endl;
   std::cout << "Total :" << result->total << std::endl;
   std::cout << "AI choose type[" << result->type << "], rotate[" << result->rotate << "], at (" << (result->row)-3 << ", " << (result->col)-3 << ")." << std::endl;
 }
