@@ -7,6 +7,8 @@ struct coordinate{
   int col;
 };
 
+struct tableElement;
+
 struct node{
   int redWin;
   int greenWin;
@@ -14,7 +16,7 @@ struct node{
   int round;
   int board[19][19];
   int available[2][8];
-
+  
   //From what action
   int type;
   int rotate;
@@ -22,6 +24,7 @@ struct node{
   int col;
 
   node* parent;
+  tableElement* element; 
   std::list<node*> children;
 };
 
@@ -52,11 +55,14 @@ class ai{
 				 int (&aiResult)[3]);
 
 	//UCT select
-	//node* uct();
+	node* uct(std::list<tableElement> &nodeTable,
+	          int term,
+			  int iteration);
 
 	//Expand all possible move.
 	void feasible_way(node* root,
-					  int term);
+					  int term,
+					  std::list<tableElement> &nodeTable);
 
 	//Simulate
 	void simulate_node(node* start);
@@ -72,6 +78,7 @@ class ai{
 	//Initialize new feasible move.
 	inline void initialize_node(node* feasMove,
 	                            node* parent,
+								std::list<tableElement>& nodeTable,
 	                            int (&curBoard)[19][19],
 								int (&curAvailable)[2][8],
 	                            int round,
@@ -81,8 +88,8 @@ class ai{
 								int col);
 
     //Initialize or update a state with a exist node.
-    inline void initialize_element(tableElement* curElement,
-	                               node* curNode);
+    /*inline void initialize_element(tableElement* curElement,
+	                               node* curNode);*/
 
 	//Check legal move.
 	bool check_chessman(int (&curBoard)[19][19],
