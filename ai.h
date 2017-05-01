@@ -7,7 +7,10 @@ struct coordinate{
   int col;
 };
 
-struct tableElement;
+struct matchResult{
+  int winner;
+  int score;
+};
 
 struct node{
   int redWin;
@@ -16,7 +19,10 @@ struct node{
   int round;
   int board[19][19];
   int available[2][8];
-  
+  double redScore;
+  double greenScore;
+
+
   //From what action
   int type;
   int rotate;
@@ -24,15 +30,7 @@ struct node{
   int col;
 
   node* parent;
-  tableElement* element; 
   std::list<node*> children;
-};
-
-struct tableElement{
-  int redWin;
-  int greenWin;
-  int total;
-  node* link;
 };
 
 class ai{
@@ -53,16 +51,18 @@ class ai{
 				 int round,
 				 int term,
 				 int (&aiResult)[3]);
-
+    node* select(node* root,
+	             int term,
+				 int iteration);
+	double uct_value(node* curNode,
+	                 int iteration);
 	//UCT select
-	node* uct(std::list<tableElement> &nodeTable,
+	/*node* uct(std::list<tableElement> &nodeTable,
 	          int term,
-			  int iteration);
+			  int iteration);*/
 
 	//Expand all possible move.
-	void feasible_way(node* root,
-					  int term,
-					  std::list<tableElement> &nodeTable);
+	void feasible_way(node* root);
 
 	//Simulate
 	void simulate_node(node* start);
@@ -78,7 +78,6 @@ class ai{
 	//Initialize new feasible move.
 	inline void initialize_node(node* feasMove,
 	                            node* parent,
-								std::list<tableElement>& nodeTable,
 	                            int (&curBoard)[19][19],
 								int (&curAvailable)[2][8],
 	                            int round,
@@ -86,7 +85,7 @@ class ai{
 								int rotate,
 								int row,
 								int col);
-
+    void debug_board(int (&chessBoard)[19][19]);
     //Initialize or update a state with a exist node.
     /*inline void initialize_element(tableElement* curElement,
 	                               node* curNode);*/
@@ -99,8 +98,10 @@ class ai{
 						int term); 
 
 	//Judge game result.
-    int judge(int (&chessBoard)[19][19]);	
-
+    matchResult judge(int (&chessBoard)[19][19]);	
+    
+	//Delete all node
+	void ai_clean(node* root);
   private:
 	int chessBoard[19][19];
 	int chessMan[20][4][4];

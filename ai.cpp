@@ -1,4 +1,5 @@
 #include<iostream>
+#include<iomanip>
 #include<string.h>
 #include<stdlib.h>
 #include<time.h>
@@ -155,7 +156,7 @@ void ai::ai_greeting(){
   std::cout << "Hi there!" << std::endl;
 }
 
-int ai::judge(int (&chessBoard)[19][19]){
+matchResult ai::judge(int (&chessBoard)[19][19]){
  int checkBoard[13][13];
   for(int i=0; i<13; i++){
     for(int j=0; j<13; j++){
@@ -444,12 +445,70 @@ int ai::judge(int (&chessBoard)[19][19]){
 	  }
 	}
   }
+  matchResult result;
   //std::cout << "先手領土 : " << firstArea << std::endl;
   //std::cout << "後手領土 : " << secondArea << std::endl;
-  if(firstArea > secondArea)return 1;
-  else if(secondArea > firstArea)return 2;
-  else return 0;
+  //std::cout << std::endl;
+  if(firstArea > secondArea){
+    result.winner = 1;
+	result.score = firstArea;
+    return result;
+  }
+  else if(secondArea > firstArea){
+    result.winner = 2;
+	result.score = secondArea;
+    return result;
+  }
+  
+  else{
+    result.winner = 0;
+	result.score = 0;
+    return result;
+  }
 } 
+
+void ai::debug_board(int (&chessBoard)[19][19]){
+  //行座標
+  std::cout << "    ";
+  for(int i=0; i<13; i++){
+    std::cout << std::setw(2) << i << " ";
+  }
+  std::cout  << std::endl;
+  std::cout << "    ";
+  for(int i=0; i<13; i++){
+    std::cout << std::setw(2) << "___";
+  }
+  std::cout << std::endl;
+
+  for(int i=3; i<16; i++){
+    //列座標
+    std::cout << std::setw(2) << i-3 << " |";
+
+	//內容
+    for(int j=3; j<16; j++){
+	  std::string display;
+	  switch(chessBoard[i][j]){
+	    case 0:
+		  display = " o";
+		  break;
+		case 1: 
+          display = "\033[1;41m 1\033[0m";
+		  break;
+		case 2:
+		  display = "\033[1;42m 2\033[0m";
+		  break;
+		case 3:
+		  display = "\033[1;33m *\033[0m";
+		  break;
+		default:
+		  display = chessBoard[i][j];
+	  }
+
+	  std::cout << display << " ";
+	}
+	std::cout << std::endl;
+  }
+}
 
 bool ai::check_chessman(int (&curBoard)[19][19],
                         int chessIndex,
@@ -499,6 +558,7 @@ bool ai::check_chessman(int (&curBoard)[19][19],
 }
 
 
+
 void ai::ai_available(int (&curAvailable)[2][8]){
   for(int i=0; i<8; i++){
     available[0][i] = curAvailable[0][i];
@@ -506,8 +566,8 @@ void ai::ai_available(int (&curAvailable)[2][8]){
   }
 }
 
-void ai::feasible_way(node* root, int term, std::list<tableElement> &nodeTable){
-
+void ai::feasible_way(node* root){
+  int term = ((root->round) % 2)+1;
   //For all available chessman
   for(int i=0; i<8; i++){
     if((root->available)[term-1][i] > 0){
@@ -533,7 +593,7 @@ void ai::feasible_way(node* root, int term, std::list<tableElement> &nodeTable){
 
 			  //Create new node
 			  node* feasMove = new node;
-			  initialize_node(feasMove, root, nodeTable, newBoard, newAvailable, (root->round)+1, i, j, k, l);
+			  initialize_node(feasMove, root, newBoard, newAvailable, (root->round)+1, i, j, k, l);
 
 			  //Append to root
 			  (root->children).push_back(feasMove);
@@ -546,34 +606,18 @@ void ai::feasible_way(node* root, int term, std::list<tableElement> &nodeTable){
 }
 
 void ai::simulate_node(node* start){
-  /*for(int i=0; i<2; i++){
-    for(int j=0;j<8; j++){
-	  std::cout << (start->available)[i][j] << " ";
-	}
-	std::cout << std::endl;
-  }*/
-
-  //std::cout << "Start round: " << start->round << std::endl;
   //Check if not reach end.
-  while(start->round != 19){
+  while(start->round != 18){
 
     //Determine term
-    int term = abs(((start->round) % 2)-1);
+    int term = (((start->round) % 2));
     int type, rotate, row, col;
 	bool legalMove = false;
-    //std::cout << "curTerm: " << term << std::endl;
 	//Make a move.
 	while(!legalMove){
-      /*for(int k=0; k<2; k++){
-        for(int l=0;l<8; l++){
-	      std::cout << (start->available)[k][l] << " ";
-	    }
-	    std::cout << std::endl;
-      }*/
 	  //Determine type.
 	  type = rand() % 8;
       while((start->available)[term][type] == 0)type = rand() % 8;
-      //std::cout << "Chosen.\n";
 	  //Determine rotation.
 	  rotate = rand() % rotateLimit[type];
 
@@ -594,7 +638,7 @@ void ai::simulate_node(node* start){
   }
 }
 
-inline void ai::initialize_node(node* feasMove, node* parent, std::list<tableElement> &nodeTable, int (&curBoard)[19][19], int (&curAvailable)[2][8], int round, int type, int rotate, int row, int col){
+inline void ai::initialize_node(node* feasMove, node* parent, int (&curBoard)[19][19], int (&curAvailable)[2][8], int round, int type, int rotate, int row, int col){
   //Initial state(node) parameter.
   (feasMove->redWin) = 0;
   (feasMove->greenWin) = 0;
@@ -605,31 +649,11 @@ inline void ai::initialize_node(node* feasMove, node* parent, std::list<tableEle
   (feasMove->rotate) = rotate;
   (feasMove->row) = row;
   (feasMove->col) = col;
+  (feasMove->redScore) = 0;
+  (feasMove->greenScore) = 0;
   memcpy(&(feasMove->board), &curBoard, sizeof(feasMove->board));
   memcpy(&(feasMove->available), &curAvailable, sizeof(feasMove->available));
-
-  
-  //Initial a element for new node.
-  tableElement element;
-  element.redWin = 0;
-  element.greenWin = 0;
-  element.total = 0;
-  element.link = feasMove;
-  
-  //Insert element to table and link to node.
-  nodeTable.push_back(element);
-  (feasMove->element) = &(nodeTable.back());
-  
 }
-
-/*
-inline void ai::initialize_element(tableElement* curElement, node* curNode){
-  curElement->redWin = curNode->redWin;
-  curElement->greenWin = curNode->greenWin;
-  curElement->total = curNode->total;
-  curElement->link = curNode;
-}
-*/
 
 void ai::update_board(int (&curBoard)[19][19],
                       int (&newBoard)[19][19],
@@ -650,97 +674,83 @@ void ai::update_board(int (&curBoard)[19][19],
   }
 }
 
-node* ai::uct(std::list<tableElement> &nodeTable, int term, int iteration){
-  node* result;
-  double maxValue = -1.0;
-  double curValue = -1.0;
-  double winRate = 0.0;
-  //int maxLevel = 0;
-  std::vector<node*> candidate;
-
-  std::list<tableElement>::iterator it = nodeTable.begin();
-  for(int i=0; i<nodeTable.size(); i++){
-    //First calculate UCT value.
-    if(term == 1){
-	  if((it->total) == 0){
-	    //Node that not yet been tested, default value.
-	    curValue = 0.5;
+node* ai::select(node* root, int term, int iteration){
+  node* curNode = root;
+  while(!(curNode->children).empty()){
+    double maxUCT = -10.0;
+	double curUCT = -10.0;
+	node* nextNode;
+	std::list<node*>::iterator it = (curNode->children).begin();
+	while(it != (curNode->children).end()){
+	  curUCT = uct_value(*it, iteration);
+	  if(curUCT > maxUCT){
+	    maxUCT = curUCT;
+		nextNode = *it;
 	  }
-	  else{
-	    winRate = (double)(it->redWin)/(double)(it->total);
-        curValue = winRate + 0.1 * sqrt(log10(iteration)/(double)(it->total));
-	  }
+      it++;
 	}
-    else{
-	  if((it->total) == 0){
-	    //Node that not yet been tested, default value.
-	    curValue = 0.5;
-	  }
-	  else{
-	    winRate = (double)(it->greenWin)/(double)(it->total);
-        curValue = winRate + 0.1 * sqrt(log10(iteration)/(double)(it->total));
-	  }
-	}
-    
-	//Compare with current maximum.
-	if(curValue > maxValue){
-	  //Clean candidate.
-	  candidate.clear();
-
-	  candidate.push_back(it->link);
-	  maxValue = curValue;
-    }
-	else if(curValue == maxValue){
-	  candidate.push_back(it->link);
-	}
-	//std::cout << "Current Move: " << it->link->row << " " << it->link->col << std::endl;
-	//std::cout << "Current UCT value: " << curValue << std::endl;
-	it++;
+	curNode = nextNode;
   }
-  int pickIndex = rand() % candidate.size();
-  result = candidate[pickIndex];
-  //std::cout << "Select: " << result->type << " " << result->rotate << " " << result->row << " " << result->col << std::endl;
-  return result;
+  return curNode;
+}
 
+double ai::uct_value(node* curNode, int iteration){
+  double result = 0.0;
+  double winRate = 0.0;
+  if((curNode->round % 2) == 1){
+    //First(Red)
+	if(curNode->total == 0){
+	  result = 1.05;
+	}
+	else{
+      winRate = (double)(curNode->redWin)/(double)(curNode->total);
+      result = winRate + 0.1 * sqrt(log10(iteration)/(double)(curNode->total));
+	}
+
+  }
+  else{
+    //Second(Green)
+	if(curNode->total == 0){
+	  result = 1.05;
+	}
+	else{
+      winRate = (double)(curNode->greenWin)/(double)(curNode->total);
+      result = winRate + 0.1 * sqrt(log10(iteration)/(double)(curNode->total));
+	}
+  }
+  return result;
 }
 
 void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, int term, int (&aiResult)[3]){
   srand(time(NULL));
   std::cout << "AI received round: " << round << std::endl; 
   //Fixed round(框架內的round是未落子的round, 但ai要的round是當下state所在的)
-  //(3/27)輪到第幾手
   int curRound = round;
-  term = (round+1 % 2)+1;
-  //Create empty node table
-  std::list<tableElement> nodeTable; 
-  //nodeTable.clear();
-  
+  std::cout << "Term :" << term << std::endl;
+
   //建立MCTS root
   node root;
-  initialize_node(&root, NULL, nodeTable, curBoard, curAvailable, curRound, 0, 0, 0, 0);
-  
-  //tableElement element;
-  //nodeTable.push_back(element);
-  //initialize_element(&(nodeTable.back()), &root);
+  initialize_node(&root, NULL, curBoard, curAvailable, curRound-1, 0, 0, 0, 0);
     
   //開始MCTS
   int iteration = 0;
   while(iteration < 10000){
     //std::cout << "Iteration " << iteration << std::endl;
     //Select
-	node* mctsStart = uct(nodeTable, term, iteration);
-    
+	//std::cout << "Select start.\n";
+    node* mctsStart = select(&root, term, iteration);
     //Expand
+	//std::cout << "Expand start.\n";
 	node* simStart;
 	
 	//Check if start is ended state or not.
-	if(mctsStart->round != 19){
+	if(mctsStart->round != 18){
 
 	  //Check if start is leaf node.
 	  if((mctsStart->children).size() == 0){
 	    //std::cout << "Current round: " << mctsStart->round << std::endl;
 	    //Expand all possible move.
-		feasible_way(mctsStart, abs(((mctsStart->round)%2)-1)+1, nodeTable);
+		feasible_way(mctsStart);
 
 		//Log on console how many feasible move.
         //std::cout << "Found " << (mctsStart->children).size() << " move(s)." << std::endl;
@@ -761,7 +771,11 @@ void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, i
 
 	//Judge result(should add area).
 	//std::cout << "Judge start.\n";
-    int winner = judge(simCopy.board);
+	//debug_board(simCopy.board);
+    matchResult matchOut = judge(simCopy.board);
+
+	int winner = matchOut.winner;
+    //std::cout << "Winner: " << winner << std::endl;
 
 	//Update
 	node* temp = simStart;
@@ -771,10 +785,7 @@ void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, i
 	      //Update node.
 		  temp->total++;
 		  temp->redWin++;
-
-		  //Update element.
-		  temp->element->redWin++;
-		  temp->element->total++;
+		  temp->redScore = (((temp->redScore*((double)temp->redWin-(double)1))+(double)matchOut.score)/(double)temp->redWin);
 		  
 		  temp = temp->parent;
 		}
@@ -784,10 +795,7 @@ void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, i
 		  //Update node.
 		  temp->total++;
 		  temp->greenWin++;
-
-		  //Update element.
-		  temp->element->greenWin++;
-		  temp->element->total++;
+		  temp->greenScore = (((temp->greenScore*((double)temp->greenWin-(double)1))+(double)matchOut.score)/(double)temp->greenWin);
 
 		  temp = temp->parent;
 		}
@@ -798,12 +806,18 @@ void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, i
   node* result;
   double maxRate = -1.0;
   double curRate = 0.0; 
+  double maxScore = -1.0;
   std::list<node*>::iterator it = root.children.begin();
   while(it != root.children.end()){
     if(term == 1){
 	  curRate = (double)((*it)->redWin) / (double)((*it)->total);
 	  if(curRate > maxRate){
 	    maxRate = curRate;
+		maxScore = (*it)->redScore;
+		result = *it;
+	  }
+	  else if((curRate == maxRate) && ((*it)->redScore > maxScore)){
+	    maxScore = (*it)->redScore;
 		result = *it;
 	  }
 	}
@@ -811,24 +825,40 @@ void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, i
       curRate = (double)((*it)->greenWin) / (double)((*it)->total);
 	  if(curRate > maxRate){
 	    maxRate = curRate;
+		maxScore = (*it)->greenScore;
+		result = *it;
+	  }
+	  else if((curRate == maxRate) && ((*it)->greenScore > maxScore)){
+	    maxScore = (*it)->greenScore;
 		result = *it;
 	  }
 	}
 	it++;
   }
-  
+  std::cout << "Term :" << term << std::endl; 
   std::cout << "Max win rate is :" << maxRate << std::endl;
   if(term == 1)std::cout << "Win :" << result->redWin << std::endl;
   else std::cout << "Win :" << result->greenWin << std::endl;
   std::cout << "Total :" << result->total << std::endl;
   std::cout << "AI choose type[" << result->type << "], rotate[" << result->rotate << "], at (" << (result->row)-3 << ", " << (result->col)-3 << ")." << std::endl;
-  
-  std::cout << std::endl << " ---Debug--- " << std::endl;
-  std::cout << "Result element total: " << result->element->total << std::endl;
-  std::cout << "Result redWin: " << result->element->redWin << std::endl;
-  std::cout << "Result greenWin: " << result->element->greenWin << std::endl;
-  std::cout << std::endl << "Table size: " << nodeTable.size() << std::endl;
-  
-  
+  ai_clean(&root);
 }
 
+void ai::ai_clean(node* root){
+  std::list<node*> toDelete;
+  std::list<node*>::iterator it = (root->children).begin();
+  while(it != (root->children).end()){
+    toDelete.push_back(*(it++));
+  }
+  while(!toDelete.empty()){
+    //std::cout << "Del..\n";
+    node* curNode = toDelete.front();
+	toDelete.pop_front();
+	it = (curNode->children).begin();
+	while(it != (curNode->children).end()){
+	  toDelete.push_back(*(it++));
+	}
+	delete curNode;
+  }
+  return;
+}

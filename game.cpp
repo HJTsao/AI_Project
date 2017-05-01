@@ -645,8 +645,8 @@ void game_main(){
   gameLog.open(logName.c_str(), std::fstream::in | std::fstream::out | std::fstream::trunc);
 
   //AI init
-  ai AI;
-  AI.ai_greeting();
+  //ai AI;
+  //AI.ai_greeting();
 
   //Load or New game
   char ans;
@@ -719,7 +719,9 @@ void game_main(){
 	  }
       else if(input == "ai"){
 		int aiResult[3];
+		ai AI;
 		AI.ai_play(chessBoard, available, round, term, aiResult);
+		AI.~ai();
 	    break;
 	  }
       //存檔
