@@ -1,17 +1,27 @@
-#include<iostream>
-#include<iomanip>
-#include<string.h>
-#include<stdlib.h>
+#include <iostream>
+#include <iomanip>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include<time.h>
-#include"ai.h"
-#include"chessman.h"
-#include<list>
-#include<vector>
-#include<math.h>
+#include "ai.h"
+#include "chessman.h"
+#include <list>
+#include <vector>
+#include <math.h>
+typedef int8_t int8;
+
+//Function		:ai
+//Description	:Constructor, initialize all game info.
 ai::ai(){
   //Board init
   for(int i=0; i<19; i++){
     for(int j=0; j<19; j++){
+	  chessBoard[i][j] = 4;
+	}
+  }
+  for(int i=3; i<16; i++){
+    for(int j=3; j<16; j++){
 	  chessBoard[i][j] = 0;
 	}
   }
@@ -156,7 +166,9 @@ void ai::ai_greeting(){
   std::cout << "Hi there!" << std::endl;
 }
 
-matchResult ai::judge(int (&chessBoard)[19][19]){
+//Function		:judge
+//Description	:Judge a match and return result.
+matchResult ai::judge(int8 (&chessBoard)[19][19]){
  int checkBoard[13][13];
   for(int i=0; i<13; i++){
     for(int j=0; j<13; j++){
@@ -339,9 +351,7 @@ matchResult ai::judge(int (&chessBoard)[19][19]){
 				  alive = true;
 				  break;
 				}
-				//std::cout << section[l][m] << " ";
 			  }
-			  //std::cout << std::endl;
 			  if(alive)break;
 			}
 		  }
@@ -446,9 +456,6 @@ matchResult ai::judge(int (&chessBoard)[19][19]){
 	}
   }
   matchResult result;
-  //std::cout << "先手領土 : " << firstArea << std::endl;
-  //std::cout << "後手領土 : " << secondArea << std::endl;
-  //std::cout << std::endl;
   if(firstArea > secondArea){
     result.winner = 1;
 	result.score = firstArea;
@@ -467,7 +474,9 @@ matchResult ai::judge(int (&chessBoard)[19][19]){
   }
 } 
 
-void ai::debug_board(int (&chessBoard)[19][19]){
+//Function		:debug_board
+//Description	:Display board with color.
+void ai::debug_board(int8 (&chessBoard)[19][19]){
   //行座標
   std::cout << "    ";
   for(int i=0; i<13; i++){
@@ -501,7 +510,7 @@ void ai::debug_board(int (&chessBoard)[19][19]){
 		  display = "\033[1;33m *\033[0m";
 		  break;
 		default:
-		  display = chessBoard[i][j];
+		  display = (int)(chessBoard[i][j]);
 	  }
 
 	  std::cout << display << " ";
@@ -510,15 +519,17 @@ void ai::debug_board(int (&chessBoard)[19][19]){
   }
 }
 
-bool ai::check_chessman(int (&curBoard)[19][19],
-                        int chessIndex,
-						int row,
-						int col,
-						int term){
+//Function		:check_chessman
+//Description	:Check if a move is legal or not.
+bool ai::check_chessman(int8 (&curBoard)[19][19],
+                        int8 chessIndex,
+						int8 row,
+						int8 col,
+						int8 term){
  //先檢查是否有空間
   for(int i=0; i<4; i++){
     for(int j=0; j<4; j++){
-	  if(chessMan[chessIndex][i][j] == 1 && (curBoard[row+i][col+j] != 0 && curBoard[row+i][col+j] != 3)){
+	  if((chessMan[chessIndex][i][j] == 1 )&&( (curBoard[row+i][col+j] != 0 && curBoard[row+i][col+j] != 3))){
 	    return false;
 	  }
 	}
@@ -558,36 +569,40 @@ bool ai::check_chessman(int (&curBoard)[19][19],
 }
 
 
-
-void ai::ai_available(int (&curAvailable)[2][8]){
+//Function		:ai_available
+//Description	:Update AI's available variable.
+//**Currently no use**
+void ai::ai_available(int8 (&curAvailable)[2][8]){
   for(int i=0; i<8; i++){
     available[0][i] = curAvailable[0][i];
 	available[1][i] = curAvailable[1][i];
   }
 }
 
+//Function		:feasible_way
+//Description	:Find all feasible move at a state.
 void ai::feasible_way(node* root){
-  int term = ((root->round) % 2)+1;
+  int8 term = ((root->round) % 2)+1;
   //For all available chessman
   for(int i=0; i<8; i++){
     if((root->available)[term-1][i] > 0){
 
 	  //For all rotation
-	  for(int j=0; j<rotateLimit[i]; j++){
-	    int chessIndex = typeStart[i] + j;
+	  for(int8 j=0; j<rotateLimit[i]; j++){
+	    int8 chessIndex = typeStart[i] + j;
 
 		//For all position
-		for(int k=3; k<16; k++){
-		  for(int l=3; l<16; l++){
+		for(int8 k=3; k<16; k++){
+		  for(int8 l=3; l<16; l++){
 		    if((check_chessman((root->board), chessIndex, k, l, term)) == true){
 
 			  //Possible move founded.
 			  //Board after possible move.
-			  int newBoard[19][19];
+			  int8 newBoard[19][19];
 			  update_board((root->board), newBoard, chessIndex, k, l, term);
 
 			  //Available chessman after possible move
-              int newAvailable[2][8];
+              int8 newAvailable[2][8];
 			  memcpy(&newAvailable, &(root->available), sizeof(newAvailable));
 			  newAvailable[term-1][i]--;
 
@@ -605,16 +620,30 @@ void ai::feasible_way(node* root){
   }
 }
 
+//Function		:simulate_node
+//Description	:Do the simulation part in MCTS.
+//TODO: new simulate heuristic
 void ai::simulate_node(node* start){
   //Check if not reach end.
   while(start->round != 18){
 
     //Determine term
-    int term = (((start->round) % 2));
-    int type, rotate, row, col;
+    int8 term = (((start->round) % 2));
+    int8 type, rotate, row, col;
 	bool legalMove = false;
 	//Make a move.
+	int failCount = 0;
+	int range = 2;
 	while(!legalMove){
+	  failCount++;
+	  if(failCount > 1000){
+	    failCount = 0;
+		range = range*2;
+		if(range > 16){
+		  range = 16;
+		}
+      }
+		  
 	  //Determine type.
 	  type = rand() % 8;
       while((start->available)[term][type] == 0)type = rand() % 8;
@@ -624,7 +653,10 @@ void ai::simulate_node(node* start){
 	  //Determine position.
 	  row = rand() % 13;
 	  col = rand() % 13;
-
+	  /*col = 6+((rand() % range)-(range/2));
+	  if(col < 0) col = 0;
+	  else if(col > 12) col = 12; 
+      */ 
 	  //Check legal move.
 	  legalMove =  check_chessman(start->board, typeStart[type]+rotate, row+3, col+3, term+1);
 	}
@@ -638,7 +670,7 @@ void ai::simulate_node(node* start){
   }
 }
 
-inline void ai::initialize_node(node* feasMove, node* parent, int (&curBoard)[19][19], int (&curAvailable)[2][8], int round, int type, int rotate, int row, int col){
+inline void ai::initialize_node(node* feasMove, node* parent, int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8], int8 round, int8 type, int8 rotate, int8 row, int8 col){
   //Initial state(node) parameter.
   (feasMove->redWin) = 0;
   (feasMove->greenWin) = 0;
@@ -655,12 +687,14 @@ inline void ai::initialize_node(node* feasMove, node* parent, int (&curBoard)[19
   memcpy(&(feasMove->available), &curAvailable, sizeof(feasMove->available));
 }
 
-void ai::update_board(int (&curBoard)[19][19],
-                      int (&newBoard)[19][19],
-					  int chessIndex,
-					  int row,
-					  int col,
-					  int term){
+//Function		:update_board
+//Description	:Update a board variable with specified chess type and position, term.
+void ai::update_board(int8 (&curBoard)[19][19],
+                      int8 (&newBoard)[19][19],
+					  int8 chessIndex,
+					  int8 row,
+					  int8 col,
+					  int8 term){
   //First copy old board to new board.
   memcpy(&newBoard, &curBoard, sizeof(newBoard));
 
@@ -674,14 +708,16 @@ void ai::update_board(int (&curBoard)[19][19],
   }
 }
 
-node* ai::select(node* root, int term, int iteration){
+//Function		:select
+//Description	:Select until reach leaf node with largest uct value at each depth.
+node* ai::select(node* root, int8 term, int iteration){
   node* curNode = root;
-  while(!(curNode->children).empty()){
+  while((!(curNode->children).empty())&&((curNode->total)>4)){
     double maxUCT = -10.0;
 	double curUCT = -10.0;
 	node* nextNode;
 	std::list<node*>::iterator it = (curNode->children).begin();
-	while(it != (curNode->children).end()){
+	while((it != (curNode->children).end())){
 	  curUCT = uct_value(*it, iteration);
 	  if(curUCT > maxUCT){
 	    maxUCT = curUCT;
@@ -694,13 +730,15 @@ node* ai::select(node* root, int term, int iteration){
   return curNode;
 }
 
+//Function		:uct_value
+//Description	:Calculate the uct value of a node.
 double ai::uct_value(node* curNode, int iteration){
   double result = 0.0;
   double winRate = 0.0;
   if((curNode->round % 2) == 1){
     //First(Red)
 	if(curNode->total == 0){
-	  result = 1.05;
+	  result = 0.6;
 	}
 	else{
       winRate = (double)(curNode->redWin)/(double)(curNode->total);
@@ -711,7 +749,7 @@ double ai::uct_value(node* curNode, int iteration){
   else{
     //Second(Green)
 	if(curNode->total == 0){
-	  result = 1.05;
+	  result = 0.6;
 	}
 	else{
       winRate = (double)(curNode->greenWin)/(double)(curNode->total);
@@ -721,39 +759,46 @@ double ai::uct_value(node* curNode, int iteration){
   return result;
 }
 
-void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, int term, int (&aiResult)[3]){
+
+//Function		:ai_play
+//Description	:main flow control of MCTS
+void ai::ai_play(int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8],int8 round, int8 term, int (&aiResult)[3]){
   srand(time(NULL));
-  std::cout << "AI received round: " << round << std::endl; 
+  //std::cout << "AI received round: " << (int)round << std::endl; 
   //Fixed round(框架內的round是未落子的round, 但ai要的round是當下state所在的)
-  int curRound = round;
-  std::cout << "Term :" << term << std::endl;
+  int8 curRound = round;
+  //std::cout << "Term :" << (int)term << std::endl;
 
   //建立MCTS root
   node root;
   initialize_node(&root, NULL, curBoard, curAvailable, curRound-1, 0, 0, 0, 0);
-    
+  
+  //Debug
+  /*for(int i=0; i<19; i++){
+    for(int j=0; j<19; j++){
+	  std::cout << (int)(curBoard[i][j]);
+	}
+    std::cout << std::endl;
+  }*/
+
   //開始MCTS
   int iteration = 0;
-  while(iteration < 10000){
-    //std::cout << "Iteration " << iteration << std::endl;
+  long long int expandCount = 0;
+  int noWinner = 0;
+  while(iteration < 50000){
     //Select
-	//std::cout << "Select start.\n";
     node* mctsStart = select(&root, term, iteration);
     //Expand
-	//std::cout << "Expand start.\n";
 	node* simStart;
 	
 	//Check if start is ended state or not.
 	if(mctsStart->round != 18){
-
+      //std::cout << "Select rount :" << mctsStart->round << std::endl;
 	  //Check if start is leaf node.
 	  if((mctsStart->children).size() == 0){
-	    //std::cout << "Current round: " << mctsStart->round << std::endl;
 	    //Expand all possible move.
 		feasible_way(mctsStart);
-
-		//Log on console how many feasible move.
-        //std::cout << "Found " << (mctsStart->children).size() << " move(s)." << std::endl;
+		expandCount++;
       }
 
 	  //Then randomly pick a possible move
@@ -766,16 +811,12 @@ void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, i
 	node simCopy = (*simStart);
 
 	//Simulate: simulate with a copy version.
-	//std::cout << "Simulation start." << std::endl;
 	simulate_node(&simCopy);
 
 	//Judge result(should add area).
-	//std::cout << "Judge start.\n";
-	//debug_board(simCopy.board);
     matchResult matchOut = judge(simCopy.board);
 
 	int winner = matchOut.winner;
-    //std::cout << "Winner: " << winner << std::endl;
 
 	//Update
 	node* temp = simStart;
@@ -800,6 +841,14 @@ void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, i
 		  temp = temp->parent;
 		}
 		break;
+	  case 0:
+	    noWinner++;
+        while(temp != NULL){
+		  //Update node.
+		  temp->total++;
+		  temp = temp->parent;
+		}
+		break;
     }
     iteration++;
   }
@@ -809,6 +858,7 @@ void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, i
   double maxScore = -1.0;
   std::list<node*>::iterator it = root.children.begin();
   while(it != root.children.end()){
+    //std::cout << "Total check :" << (*it)->total << std::endl;
     if(term == 1){
 	  curRate = (double)((*it)->redWin) / (double)((*it)->total);
 	  if(curRate > maxRate){
@@ -835,24 +885,30 @@ void ai::ai_play(int (&curBoard)[19][19], int (&curAvailable)[2][8],int round, i
 	}
 	it++;
   }
-  std::cout << "Term :" << term << std::endl; 
+  std::cout << "No winner :" << noWinner << std::endl;
+  std::cout << "Term :" << (int)term << std::endl; 
   std::cout << "Max win rate is :" << maxRate << std::endl;
   if(term == 1)std::cout << "Win :" << result->redWin << std::endl;
   else std::cout << "Win :" << result->greenWin << std::endl;
   std::cout << "Total :" << result->total << std::endl;
-  std::cout << "AI choose type[" << result->type << "], rotate[" << result->rotate << "], at (" << (result->row)-3 << ", " << (result->col)-3 << ")." << std::endl;
+  std::cout << "AI choose type[" << (int)(result->type) << "], rotate[" << (int)(result->rotate) << "], at (" << int((result->row)-3) << ", " << (int)((result->col)-3) << ")." << std::endl;
   ai_clean(&root);
+  std::cout << "Expand times :" << expandCount << std::endl;
+  std::cout << "Root total :" << root.total << std::endl;
 }
 
+//Function		:ai_clean
+//Description	:Clean up heap memory.
 void ai::ai_clean(node* root){
+  int maxRound = -1;
   std::list<node*> toDelete;
   std::list<node*>::iterator it = (root->children).begin();
   while(it != (root->children).end()){
     toDelete.push_back(*(it++));
   }
   while(!toDelete.empty()){
-    //std::cout << "Del..\n";
     node* curNode = toDelete.front();
+	if((curNode->round) > maxRound)maxRound = (curNode->round);
 	toDelete.pop_front();
 	it = (curNode->children).begin();
 	while(it != (curNode->children).end()){
@@ -860,5 +916,6 @@ void ai::ai_clean(node* root){
 	}
 	delete curNode;
   }
+  std::cout << "Leaf node round :" << maxRound << std::endl;
   return;
 }

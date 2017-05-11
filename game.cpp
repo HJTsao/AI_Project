@@ -1,15 +1,17 @@
-#include<iostream>
-#include<iomanip>
-#include<fstream>
-#include<sstream>
-#include<vector>
-#include<list>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <list>
+#include <stdint.h>
 #include "chessman.h"
 #include "ai.h"
-struct coordinate {
- int row;
- int col;
-};
+typedef int8_t int8;
+/*struct coordinate {
+ int8 row;
+ int8 col;
+};*/
 
 void to_last_line(std::fstream &gameLog){
   gameLog.seekg(-2, gameLog.end);
@@ -52,14 +54,19 @@ void delete_last_line(std::fstream &gameLog){
   gameLog << logContent;
 }
 
-void game_init(int (&chessBoard)[19][19],
-               int (&chessMan)[20][4][4],
-			   int (&available)[2][8],
-			   int (&typeStart)[8],
-			   int (&rotateLimit)[8]){
+void game_init(int8 (&chessBoard)[19][19],
+               int8 (&chessMan)[20][4][4],
+			   int8 (&available)[2][8],
+			   int8 (&typeStart)[8],
+			   int8 (&rotateLimit)[8]){
   //Board init
   for(int i=0; i<19; i++){
     for(int j=0; j<19; j++){
+	  chessBoard[i][j] = 4;
+	}
+  }
+  for(int i=3; i<16; i++){
+    for(int j=3; j<16; j++){
 	  chessBoard[i][j] = 0;
 	}
   }
@@ -202,7 +209,7 @@ void game_init(int (&chessBoard)[19][19],
   }
 }
 
-int game_judge(int (&chessBoard)[19][19]){
+int game_judge(int8 (&chessBoard)[19][19]){
   int checkBoard[13][13];
   for(int i=0; i<13; i++){
     for(int j=0; j<13; j++){
@@ -506,16 +513,16 @@ int game_judge(int (&chessBoard)[19][19]){
   else return 0;
 }
 
-void debug_display_board(int (&chessBoard)[19][19]){
+void debug_display_board(int8 (&chessBoard)[19][19]){
   for(int i=2; i<17; i++){
     for(int j=2; j<17; j++){
-	  std::cout << chessBoard[i][j] << " ";
+	  std::cout << (int)(chessBoard[i][j]) << " ";
 	}
 	std::cout << std::endl;
   }
 }
 
-void display_board(int (&chessBoard)[19][19]){
+void display_board(int8 (&chessBoard)[19][19]){
   //行座標
   std::cout << "    ";
   for(int i=0; i<13; i++){
@@ -549,7 +556,7 @@ void display_board(int (&chessBoard)[19][19]){
 		  display = "\033[1;33m *\033[0m";
 		  break;
 		default:
-		  display = chessBoard[i][j];
+		  display = (int)(chessBoard[i][j]);
 	  }
 
 	  std::cout << display << " ";
@@ -558,12 +565,12 @@ void display_board(int (&chessBoard)[19][19]){
   }
 }
 
-void display_chessman(int (&chessMan)[20][4][4]){
+void display_chessman(int8 (&chessMan)[20][4][4]){
   for(int i=0; i<20; i++){
     std::cout << "Type: " << i << std::endl;
     for(int j=0; j<4; j++){
 	  for(int k=0; k<4; k++){
-	    std::cout << chessMan[i][j][k] << " ";
+	    std::cout << (int)(chessMan[i][j][k]) << " ";
 	  }
 	  std::cout << std::endl;
     }
@@ -571,20 +578,20 @@ void display_chessman(int (&chessMan)[20][4][4]){
   }
 }
 
-bool check_chessman(int (&chessBoard)[19][19],
-                    int (&chessMan)[20][4][4],
-					int (&typeStart)[8],
-					int (&rotateLimit)[8],
-					int type,
-					int rotate,
-					int row,
-					int col,
-					int term){
+bool check_chessman(int8 (&chessBoard)[19][19],
+                    int8 (&chessMan)[20][4][4],
+					int8 (&typeStart)[8],
+					int8 (&rotateLimit)[8],
+					int8 type,
+					int8 rotate,
+					int8 row,
+					int8 col,
+					int8 term){
   //先檢查是否有空間
   for(int i=0; i<4; i++){
     for(int j=0; j<4; j++){
-	  if(chessMan[(typeStart[type] + (rotate % rotateLimit[type]))][i][j] == 1 && (chessBoard[row+i][col+j] != 0 && chessBoard[row+i][col+j] != 3)){
-        std::cout << "所選位置重疊到其他棋子" << std::endl;
+	  if((chessMan[(typeStart[type] + (rotate % rotateLimit[type]))][i][j] == 1 )&& ((chessBoard[row+i][col+j] != 0 )&& (chessBoard[row+i][col+j] != 3))){
+        std::cout << "所選位置重疊到其他棋子或空間不足" << std::endl;
 	    return false;
 	  }
 	}
@@ -594,8 +601,6 @@ bool check_chessman(int (&chessBoard)[19][19],
   for(int i=0; i<4; i++){
     for(int j=0; j<4; j++){
 	  if(chessMan[(typeStart[type] + (rotate % rotateLimit[type]))][i][j] == 1){
-	    //std::cout << (typeStart[type] + (rotate % rotateLimit[type])) << std::endl;
-	    //std::cout << "check (" << row+i << " ," << col+j << ")" << std::endl;
 	    //先確認相連
 	    //Up
 	    if((((row+i) - 1) > 2) && (chessBoard[row+i-1][col+j] == term)){
@@ -626,27 +631,23 @@ bool check_chessman(int (&chessBoard)[19][19],
 }
 
 void game_main(){
-  int chessBoard[19][19];
-  int chessMan[20][4][4];
-  int typeStart[8];
-  int rotateLimit[8];
-  int term = 1;
-  int available[2][8];
-  int round = 1;
+  int8 chessBoard[19][19];
+  int8 chessMan[20][4][4];
+  int8 typeStart[8];
+  int8 rotateLimit[8];
+  int8 term = 1;
+  int8 available[2][8];
+  int8 round = 1;
   std::string input;
-  int type = 0;
-  int rotate = 0;
-  int row = 0;
-  int col = 0;
+  int8 type = 0;
+  int8 rotate = 0;
+  int8 row = 0;
+  int8 col = 0;
 
   game_init(chessBoard, chessMan, available, typeStart, rotateLimit);
   std::string logName = "cur_game.txt";
   std::fstream gameLog;
   gameLog.open(logName.c_str(), std::fstream::in | std::fstream::out | std::fstream::trunc);
-
-  //AI init
-  //ai AI;
-  //AI.ai_greeting();
 
   //Load or New game
   char ans;
@@ -667,23 +668,28 @@ void game_main(){
 	}
 
 	//Get information
+	int loadTemp;
 	//Round
-	loadFs >> round;
+	loadFs >> loadTemp;
+	round = (int8)loadTemp;
 	//Term
 	term = (round % 2)? 1 : 2;
 	//Available
 	for(int i=0; i<2; i++){
 	  for(int j=0; j<8; j++){
-	    loadFs >> available[i][j];
+	    loadFs >> loadTemp;
+		available[i][j] = (int8)loadTemp;
 	  }
 	}
 	//Board
 	for(int i=0; i<19; i++){
 	  for(int j=0; j<19; j++){
-	    loadFs >> chessBoard[i][j];
+	    loadFs >> loadTemp;
+		chessBoard[i][j] = (int8)loadTemp;
 	  }
 	}
 
+	
 	//Load log
     std::string log_string;
     getline(loadFs, log_string);while(loadFs && log_string == "")getline(loadFs, log_string);
@@ -696,13 +702,13 @@ void game_main(){
 
   while(round != 19){
     //棋局資訊
-    std::cout << "第" << round << "手, ";
+    std::cout << "第" << (int)round << "手, ";
 	if(term == 1) std::cout << "先手方下棋" << std::endl;
 	else std::cout << "後手方下棋" << std::endl;
 	
 	std::cout << "  剩餘棋子：(\"[]\" = Type )" << std::endl;
 	for(int i=0; i<8; i++){
-	  std::cout << "[" << i << "]: " << available[term-1][i] << "   ";
+	  std::cout << "[" << i << "]: " << (int)(available[term-1][i]) << "   ";
 	}
 
     std::cout << std::endl << std::endl << "Current chessboard:" << std::endl;
@@ -734,18 +740,22 @@ void game_main(){
 		std::fstream saveFs;
 		saveFs.open(save_file.c_str(), std::fstream::out | std::fstream::trunc);
 		//Save information
+		int saveTemp;
 		//Round
-        saveFs << round;
+		saveTemp = (int)round;
+        saveFs << saveTemp;
 		//Available
 		for(int i=0; i<2; i++){
 		  for(int j=0; j<8; j++){
-		    saveFs << " " << available[i][j];
+		    saveTemp = (int)available[i][j];
+		    saveFs << " " << saveTemp;
 		  }
 		}
 		//Board
 		for(int i=0; i<19; i++){
 		  for(int j=0; j<19; j++){
-		    saveFs << " " << chessBoard[i][j];
+		    saveTemp = (int)chessBoard[i][j];
+		    saveFs << " " << saveTemp;
 		  }
 		}
 		saveFs << std::endl;
@@ -786,9 +796,17 @@ void game_main(){
 		  //Translate information
 		  std::stringstream ss;
 		  ss.str(lastLine);
-		  int last_term, last_type, last_rotate, last_row, last_col;
-		  ss >> last_term >> last_type >> last_rotate >> last_row >> last_col;
-          std::cout << last_term << last_type << last_rotate << last_row << last_col << std::endl;
+          int logTemp[5];
+		  int8 last_term, last_type, last_rotate, last_row, last_col;
+		  ss >> logTemp[0] >> logTemp[1] >> logTemp[2] >> logTemp[3] >> logTemp[4];
+          std::cout << logTemp[0] << logTemp[1] << logTemp[2] << logTemp[3] << logTemp[4] << std::endl;
+		  last_term = (int8)(logTemp[0]);
+		  last_type = (int8)(logTemp[1]);
+		  last_rotate = (int8)(logTemp[2]);
+		  last_row = (int8)(logTemp[3]);
+		  last_col = (int8)(logTemp[4]);
+
+		  std::cout << (int)last_term << (int)last_type << (int)last_rotate << (int)last_row << (int)last_col << std::endl;
 		  //Recover board
 		  for(int i=0; i<4; i++){
 		    for(int j=0; j<4; j++){
@@ -835,23 +853,30 @@ void game_main(){
         std::stringstream ss;
 		ss.str(input);
 		ss >> type;
+		type -= 48;
 		if(available[term-1][type] != 0) legalType = true;
 		while(!legalType){
 		  std::cout << "請輸入正確可用的棋子型別：";
 		  std::cin >> type;
+		  type -= 48;
 		  if(available[term-1][type] != 0) legalType = true;
 		}
-		std::cout << "已選擇型別" << type << std::endl << "請輸入右轉次數：";
+		std::cout << "已選擇型別" << (int)type << std::endl << "請輸入右轉次數：";
 		std::cin >> rotate;
+		rotate -= 48;
 		while(rotate > 3 || rotate < 0){
 		  std::cout << "請輸入0-3的右轉次數：";
 		  std::cin >> rotate;
+		  rotate -= 48;
 		}
-		std::cout << "已選擇型別" << type << ", 右轉次數" << rotate << std::endl;
+		std::cout << "已選擇型別" << (int)type << ", 右轉次數" << (int)rotate << std::endl;
+		int temp;
 		std::cout << "請輸入row：";
-		std::cin >> row;
+		std::cin >> temp;
+		row = (int8)temp;
 		std::cout << "請輸入col：";
-		std::cin >> col;
+		std::cin >> temp;
+		col = (int8)temp;
 	    //Adjust position.
 		row += 3; col += 3;
 		//檢查合法位置
@@ -860,9 +885,11 @@ void game_main(){
 		
 		while(!legalPos){
 		  std::cout << "無法在該位置下子,請輸入row：";
-		  std::cin >> row;
+		  std::cin >> temp;
+		  row = (int8)temp;
 		  std::cout << "請輸入col：";
-		  std::cin >> col;
+		  std::cin >> temp;
+		  col = (int8)temp;
 		  //Adjust position.
 		  row += 3; col += 3;
 		  //檢查合法位置
@@ -880,7 +907,7 @@ void game_main(){
 		//更新available
 		available[term-1][type]--;
 		//更新log
-        gameLog << term << " " << type << " " << rotate << " " << row << " " << col << std::endl;
+        gameLog << (int)term << " " << (int)type << " " << (int)rotate << " " << (int)row << " " << (int)col << std::endl;
 	    std::cout << "----------[ 回合結束 ]----------" << std::endl << std::endl;
 		if(term == 1) term = 2;
 		else term = 1;
