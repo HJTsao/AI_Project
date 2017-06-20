@@ -746,6 +746,13 @@ void ai::ai_play(int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8],int8 round
   if(debug){display_time(false);std::cout << "MCTS Start." << std::endl;}
 
   while(iteration < totalIteration){
+    if(debug){
+        if((iteration % 1000) == 0){
+            display_time(false);
+            std::cout << "           Current iteration: " << iteration << std::endl;
+        }
+    }
+
     //Select
     node* mctsStart = select(&root, term, iteration);
     //Expand
