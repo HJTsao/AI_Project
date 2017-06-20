@@ -53,7 +53,7 @@ class ai{
 	             int8 (&curAvailable)[2][8],
 				 int8 round,
 				 int8 term,
-				 int (&aiResult)[3],
+				 int8 (&aiResult)[4],
                  bool debug = false);
     node* select(node* root,
 	             int8 term,
@@ -108,7 +108,12 @@ class ai{
 	void ai_clean(node* root);
 
 	//Analyze current board
-	void ai_analyze(node* root, int8 term);
+	void ai_analyze(node* root, int8 term, bool debug);
+
+	//Check if still have non-occupied star points.
+	bool ai_star(node* root);
+
+	void ai_option(bool star, int i);
   private:
 	int8 chessBoard[19][19];
 	int8 chessMan[20][4][4];
@@ -117,6 +122,10 @@ class ai{
 	int8 available[2][8];
 	int8 openingPattern; // 0->top two; 1->bottom two; 2->left two; 3->right two 4->/; 5->\ //
 	bool openingComplete;
+
+	//Options
+	int totalIteration;
+	bool skipStar;
 
 
 

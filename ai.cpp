@@ -21,6 +21,8 @@ ai::ai(){
 
   openingPattern = -1;
   openingComplete = false;
+  skipStar = false;
+  totalIteration = 5000;
 }
 
 void ai::ai_greeting(){
@@ -431,7 +433,7 @@ bool ai::check_chessman(int8 (&curBoard)[19][19],
 
 //Function      :ai_analyze
 //Description   :Analyze current board and update member.
-void ai::ai_analyze(node* root, int8 term){
+void ai::ai_analyze(node* root, int8 term, bool debug){
     int8 LTop, LBot, RTop, RBot;
     LTop = (root->board)[6][6];
     LBot = (root->board)[12][6];
@@ -440,7 +442,7 @@ void ai::ai_analyze(node* root, int8 term){
     openingComplete = true;
 
     //Check star point.
-    if( (LTop == 3) || (LBot == 3) || (RTop == 3) || (RBot = 3) ){
+    if( ((int)LTop == 3) || ((int)LBot == 3) || ((int)RTop == 3) || ((int)RBot == 3) ){
         openingComplete = false;
         openingPattern = -1;
     }
@@ -492,6 +494,32 @@ void ai::ai_analyze(node* root, int8 term){
             openingPattern = 5;
         }
     }
+
+    if(debug){
+        display_time(false);
+        std::cout << "Analyze completed." << std::endl;
+        if(openingComplete){
+            std::cout << "           " << "All star points is occupied. My pattern is " << (int)openingPattern << "." << std::endl;
+        }
+        else{
+            std::cout << "           " <<  "Star points are not yet all occupied." << std::endl;
+    }
+  }
+
+}
+
+//Function      :ai_star
+//Description   :Analyze if current board still have star point.
+bool ai::ai_star(node* root){
+  if(skipStar) return false;
+  int8 LTop, LBot, RTop, RBot, star;
+  LTop = (root->board)[6][6];
+  LBot = (root->board)[12][6];
+  RTop = (root->board)[6][12];
+  RBot = (root->board)[12][12];
+  star = 3;
+  if( ((int)LTop == 3) || ((int)LBot == 3) || ((int)RTop == 3) || ((int)RBot == 3) )return true;
+  else return false;
 }
 
 //Function		:ai_available
@@ -508,6 +536,8 @@ void ai::ai_available(int8 (&curAvailable)[2][8]){
 //Description	:Find all feasible move at a state.
 void ai::feasible_way(node* root, bool debug){
   int8 term = ((root->round) % 2)+1;
+  bool star = ai_star(root);
+
   //For all available chessman
   for(int i=0; i<8; i++){
     if((root->available)[term-1][i] > 0){
@@ -519,8 +549,10 @@ void ai::feasible_way(node* root, bool debug){
 		//For all position
 		for(int8 k=3; k<16; k++){
 		  for(int8 l=3; l<16; l++){
-		    if((check_chessman((root->board), chessIndex, k, l, term)) == true){
 
+            //Check if star point all taken.
+            if(star)if((root->board)[k][l] != 3)continue;
+		    if((check_chessman((root->board), chessIndex, k, l, term)) == true){
 			  //Possible move founded.
 			  //Board after possible move.
 			  int8 newBoard[19][19];
@@ -687,7 +719,7 @@ double ai::uct_value(node* curNode, int iteration){
 
 //Function		:ai_play
 //Description	:main flow control of MCTS
-void ai::ai_play(int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8],int8 round, int8 term, int (&aiResult)[3], bool debug){
+void ai::ai_play(int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8],int8 round, int8 term, int8 (&aiResult)[4], bool debug){
   srand(time(NULL));
 
   //Debug mode information
@@ -706,24 +738,14 @@ void ai::ai_play(int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8],int8 round
   initialize_node(&root, NULL, curBoard, curAvailable, curRound-1, 0, 0, 0, 0);
 
   //Analyze board
-  ai_analyze(&root, term);
-  if(debug){
-    display_time(false);
-    std::cout << "Analyze completed." << std::endl;
-    if(openingComplete){
-        std::cout << "           " << "All star points is occupied. My pattern is " << (int)openingPattern << "." << std::endl;
-    }
-    else{
-        std::cout << "           " <<  "Star points are not yet all occupied." << std::endl;
-    }
-  }
+  ai_analyze(&root, term, debug);
   //開始MCTS
   int iteration = 0;
   long long int expandCount = 0;
   int noWinner = 0;
   if(debug){display_time(false);std::cout << "MCTS Start." << std::endl;}
 
-  while(iteration < 5000){
+  while(iteration < totalIteration){
     //Select
     node* mctsStart = select(&root, term, iteration);
     //Expand
@@ -827,6 +849,10 @@ void ai::ai_play(int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8],int8 round
   }
   //std::cout << "No winner :" << noWinner << std::endl;
   //std::cout << "Term :" << (int)term << std::endl;
+  aiResult[0] = result->type;
+  aiResult[1] = result->rotate;
+  aiResult[2] = result->row;
+  aiResult[3] = result->col;
   std::cout << "AI choose type[" << (int)(result->type) << "], rotate[" << (int)(result->rotate) << "], at (" << int((result->row)-3) << ", " << (int)((result->col)-3) << ")." << std::endl;
   std::cout << "Max win rate is :" << maxRate << std::endl;
   if(term == 1)std::cout << "Win :" << result->redWin << std::endl;
@@ -877,4 +903,9 @@ void ai::ai_clean(node* root){
   }
   std::cout << "Leaf node round :" << maxRound << std::endl;
   return;
+}
+
+void ai::ai_option(bool s, int i){
+  skipStar = s;
+  totalIteration = i;
 }

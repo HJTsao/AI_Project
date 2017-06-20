@@ -544,7 +544,7 @@ void game_main(){
         break;
 	  }
       else if(input == "ai"){
-		int aiResult[3];
+		int8 aiResult[4];
 		ai AI;
 		AI.ai_play(chessBoard, available, round, term, aiResult, debugMode);
 		AI.~ai();
