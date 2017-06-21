@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include<time.h>
+#include <time.h>
 #include "ai.h"
 #include "chessman.h"
 #include <list>
@@ -23,6 +23,7 @@ ai::ai(){
   openingComplete = false;
   skipStar = false;
   totalIteration = 5000;
+  debugDisplay = false;
 }
 
 void ai::ai_greeting(){
@@ -582,44 +583,81 @@ void ai::feasible_way(node* root, bool debug){
 //TODO: new simulate heuristic
 void ai::simulate_node(node* start){
   //Check if not reach end.
+  std::fstream simLog;
+  simLog.open("last_simulation.txt", std::ios::out | std::ios::trunc);
   while(start->round != 18){
 
     //Determine term
     int8 term = (((start->round) % 2));
     int8 type, rotate, row, col;
 	bool legalMove = false;
-	//Make a move.
-	int failCount = 0;
-	int range = 2;
-	while(!legalMove){
-	  failCount++;
-	  if(failCount > 1000){
-	    failCount = 0;
-		range = range*2;
-		if(range > 16){
-		  range = 16;
-		}
-      }
 
-	  //Determine type.
+	//Make a move.
+	timer t1, t2;
+    int runtime1 = 0;
+    bool simDebug = false;
+	t1.timer_start();
+	while(!legalMove){
+      if(debugDisplay){
+
+        int tempTime = t1.timer_gettime();
+        if(tempTime >= 3){
+          if(!simDebug){
+            simDebug = true;
+            for(int i=0; i<2; i++){
+                for(int j=0; j<8; j++){
+                    std::cout << " " << (int)(start->available)[i][j];
+                }
+                std::cout << std::endl;
+            }
+            debug_board(start->board);
+          }
+          return;
+          runtime1 += 3;
+          display_time(false);
+          std::cout << "            Simulation elapsed: " << runtime1 << "s\n";
+          t1.timer_start();
+        }
+      }
+      //Determine type.
 	  type = rand() % 8;
-      while((start->available)[term][type] == 0)type = rand() % 8;
+
+	  int temp, runtime2;
+	  runtime2 = 0;
+	  t2.timer_start();
+      while((start->available)[term][type] == 0){
+        temp = t2.timer_gettime();
+        if((temp >= 5)&&debugDisplay){
+            runtime2 += 5;
+            display_time(false);
+            std::cout << "           Finding available type: " << runtime2 << "s\n";
+            t2.timer_start();
+        }
+        type = rand() % 8;
+      }
 	  //Determine rotation.
 	  rotate = rand() % rotateLimit[type];
 
 	  //Determine position.
 	  row = rand() % 13;
 	  col = rand() % 13;
-	  /*col = 6+((rand() % range)-(range/2));
-	  if(col < 0) col = 0;
-	  else if(col > 12) col = 12;
-      */
+
 	  //Check legal move.
 	  legalMove =  check_chessman(start->board, typeStart[type]+rotate, row+3, col+3, term+1);
 	}
 
 	//Update current available.
     (start->available)[term][type] -= 1;
+
+    //Log
+    /*for(int i=0; i<2; i++){
+      for(int j=0; j<8; j++){
+        simLog << " " << (int)(start->available)[i][j];
+      }
+      simLog << std::endl;
+    }
+    simLog << "round:" << (int)start->round << " t/r/row/col:" << (int)type << "/" << (int)rotate << "/" << (int)row << "/" << (int)col << std::endl;
+    */
 
 	//Update board.
     update_board(start->board, start->board, typeStart[type]+rotate, row+3, col+3, term+1);
@@ -716,7 +754,6 @@ double ai::uct_value(node* curNode, int iteration){
   return result;
 }
 
-
 //Function		:ai_play
 //Description	:main flow control of MCTS
 void ai::ai_play(int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8],int8 round, int8 term, int8 (&aiResult)[4], bool debug){
@@ -724,6 +761,7 @@ void ai::ai_play(int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8],int8 round
 
   //Debug mode information
   if(debug){
+    debugDisplay = true;
     display_time(false);
     std::cout << "AI called with debug mode." << std::endl;
   }
@@ -745,11 +783,19 @@ void ai::ai_play(int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8],int8 round
   int noWinner = 0;
   if(debug){display_time(false);std::cout << "MCTS Start." << std::endl;}
 
+  timer t;
+  t.timer_start();
   while(iteration < totalIteration){
     if(debug){
         if((iteration % 1000) == 0){
             display_time(false);
             std::cout << "           Current iteration: " << iteration << std::endl;
+        }
+        int tempTime = t.timer_gettime();
+        if(tempTime > 1){
+            display_time(false);
+            std::cout << "           Another one second.\n";
+            t.timer_start();
         }
     }
 
@@ -757,6 +803,7 @@ void ai::ai_play(int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8],int8 round
     node* mctsStart = select(&root, term, iteration);
     //Expand
 	node* simStart;
+	//if(debugDisplay){display_time(false);std::cout << "           Pass selection.\n";}
 
 	//Check if start is ended state or not.
 	if(mctsStart->round != 18){
@@ -775,10 +822,12 @@ void ai::ai_play(int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8],int8 round
 	  simStart = *it;
 	}
 	else simStart = mctsStart;
+	//if(debugDisplay){display_time(false);std::cout << "           Pass expansion.\n";}
 	node simCopy = (*simStart);
 
 	//Simulate: simulate with a copy version.
 	simulate_node(&simCopy);
+	//if(debugDisplay){display_time(false);std::cout << "           Pass simulation.\n";}
 
 	//Judge result(should add area).
     matchResult matchOut = judge(simCopy.board);
@@ -817,6 +866,7 @@ void ai::ai_play(int8 (&curBoard)[19][19], int8 (&curAvailable)[2][8],int8 round
 		}
 		break;
     }
+    //if(debugDisplay){display_time(false);std::cout << "           Pass update.\n";}
     iteration++;
   }
   if(debug){display_time(false);std::cout << "MCTS Completed." << std::endl;}

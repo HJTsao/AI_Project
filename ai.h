@@ -126,6 +126,7 @@ class ai{
 	//Options
 	int totalIteration;
 	bool skipStar;
+	bool debugDisplay;
 
 
 

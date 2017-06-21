@@ -5,9 +5,32 @@
 #include <iomanip>
 #include <stdio.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <sys/time.h>
 #include "function.h"
 #include "chessman.h"
 typedef int8_t int8;
+
+//Function      :timer
+//Description   :Constructor of timer
+timer::timer(){
+  //Do nothing.
+}
+
+//Function      :timer_start
+//Description   :Update start time of timer
+void timer::timer_start(){
+  gettimeofday(&start, 0);
+}
+
+//Function      :timer_gettime
+//Description   :Get time elapsed from last start
+int timer::timer_gettime(){
+  gettimeofday(&end,0);
+  int sec;
+  sec = end.tv_sec - start.tv_sec;
+  return sec;
+}
 
 void display_time(bool CR){
     time_t t = time(0);
