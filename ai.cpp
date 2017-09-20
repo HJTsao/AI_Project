@@ -11,6 +11,7 @@
 #include <math.h>
 #include "function.h"
 #include <iomanip>
+#include "heuristic.h"
 typedef int8_t int8;
 
 //Function		:ai
@@ -22,7 +23,7 @@ ai::ai(){
   openingPattern = -1;
   openingComplete = false;
   skipStar = false;
-  totalIteration = 5000;
+  totalIteration = 50000;
   debugDisplay = false;
 }
 
@@ -543,6 +544,9 @@ void ai::feasible_way(node* root, bool debug){
   for(int i=0; i<8; i++){
     if((root->available)[term-1][i] > 0){
 
+      //Check if at round < 5 and pick single block
+      if(((int)(root->round) < 5) && ((int)i == 0))continue;
+
 	  //For all rotation
 	  for(int8 j=0; j<rotateLimit[i]; j++){
 	    int8 chessIndex = typeStart[i] + j;
@@ -582,6 +586,10 @@ void ai::feasible_way(node* root, bool debug){
 //Description	:Do the simulation part in MCTS.
 //TODO: new simulate heuristic
 void ai::simulate_node(node* start){
+  //Prepare scoring heuristics
+  scoring scorer;
+
+
   //Check if not reach end.
   std::fstream simLog;
   simLog.open("last_simulation.txt", std::ios::out | std::ios::trunc);

@@ -10,6 +10,13 @@
 #include "function.h"
 #include "chessman.h"
 typedef int8_t int8;
+//To do
+/*
+    Simulation check.
+    Heuristic: total boarder length or taken row & col
+    Expand: advance move check
+*/
+
 
 //Function      :timer
 //Description   :Constructor of timer
