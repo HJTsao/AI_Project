@@ -8,11 +8,18 @@ scoring::scoring(){
 
 int scoring::perimeter(node* curNode,
                   int8 term){
-  //Find session(s)
-  int sessionCounter = 0;
-  int checkBoard[19][19];
-  for(int i=0; i<19; i++)for(int j=0; j<19; j++)checkBoard[i][j] = 0;
-  for(int i=3; i<16; i++){
+    //Debug
+    /*for(int i=0;i<19;i++){
+        for(int j=0;j<19;j++){
+            std::cout << (curNode->board)[i][j] << " ";
+        }
+        std::cout <<  std::endl;
+    }*/
+    //Find session(s)
+    int sessionCounter = 0;
+    int checkBoard[19][19];
+    for(int i=0; i<19; i++)for(int j=0; j<19; j++)checkBoard[i][j] = 0;
+    for(int i=3; i<16; i++){
     for(int j=3; j<16; j++){
         if(checkBoard[i][j] != 0)continue;
         if((curNode->board)[i][j] == (term+1)){
@@ -25,35 +32,54 @@ int scoring::perimeter(node* curNode,
             curCor.col = j;
             findingPath.push_back(curCor);
             while(!findingPath.empty()){
-                curCor = findingPath.pop_back();
-                if((curNode->board)[i-1][j] == (term+1)){
-                    curCor.row = i-1;
-                    curCor.col = j;
+                coordinate tempCor;
+                tempCor = *(findingPath.begin());
+                std::cout << (int)(tempCor.row) << " " << (int)(tempCor.col) << std::endl;
+                findingPath.pop_front();
+                checkBoard[tempCor.row][tempCor.col] = sessionCounter;
+                if((curNode->board)[tempCor.row-1][tempCor.col] == (term+1) && checkBoard[tempCor.row-1][tempCor.col] == 0){
+                    curCor.row = tempCor.row-1;
+                    curCor.col = tempCor.col;
                     findingPath.push_back(curCor);
                 }
-                if((curNode->board)[i-1][j+1] == (term+1)){
-                    
+                if((curNode->board)[tempCor.row-1][tempCor.col+1] == (term+1) && checkBoard[tempCor.row-1][tempCor.col+1] == 0){
+                    curCor.row = tempCor.row-1;
+                    curCor.col = tempCor.col+1;
+                    findingPath.push_back(curCor);
                 }
-                if((curNode->board)[i][j+1] == (term+1)){
-                    
+                if((curNode->board)[tempCor.row][tempCor.col+1] == (term+1) && checkBoard[tempCor.row][tempCor.col+1] == 0){
+                    curCor.row = tempCor.row;
+                    curCor.col = tempCor.col+1;
+                    findingPath.push_back(curCor);
                 }
-                if((curNode->board)[i+1][j+1] == (term+1)){
-                    
+                if((curNode->board)[tempCor.row+1][tempCor.col+1] == (term+1) && checkBoard[tempCor.row+1][tempCor.col+1] == 0){
+                    curCor.row = tempCor.row+1;
+                    curCor.col = tempCor.col+1;
+                    findingPath.push_back(curCor);
                 }
-                if((curNode->board)[i+1][j] == (term+1)){
-                    
+                if((curNode->board)[tempCor.row+1][tempCor.col] == (term+1) && checkBoard[tempCor.row+1][tempCor.col] == 0){
+                    curCor.row = tempCor.row+1;
+                    curCor.col = tempCor.col;
+                    findingPath.push_back(curCor);
                 }
-                if((curNode->board)[i+1][j-1] == (term+1)){
-                    
+                if((curNode->board)[tempCor.row+1][tempCor.col-1] == (term+1) && checkBoard[tempCor.row+1][tempCor.col-1] == 0){
+                    curCor.row = tempCor.row+1;
+                    curCor.col = tempCor.col-1;
+                    findingPath.push_back(curCor);
                 }
-                if((curNode->board)[i][j-1] == (term+1)){
-                    
+                if((curNode->board)[tempCor.row][tempCor.col-1] == (term+1) && checkBoard[tempCor.row][tempCor.col-1] == 0){
+                    curCor.row = tempCor.row;
+                    curCor.col = tempCor.col-1;
+                    findingPath.push_back(curCor);
                 }
-                if((curNode->board)[i-1][j-1] == (term+1)){
-                    
+                if((curNode->board)[tempCor.row-1][tempCor.col-1] == (term+1) && checkBoard[tempCor.row-1][tempCor.col  -1] == 0){
+                    curCor.row = tempCor.row-1;
+                    curCor.col = tempCor.col-1;
+                    findingPath.push_back(curCor);
                 }
             }
         }
     }
   }
+  std::cout << "Find " << sessionCounter << " session(s).\n";
 }

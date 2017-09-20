@@ -587,7 +587,9 @@ void ai::feasible_way(node* root, bool debug){
 //TODO: new simulate heuristic
 void ai::simulate_node(node* start){
   //Prepare scoring heuristics
-  scoring scorer;
+	scoring scorer;
+	debug_board(start->board);
+	scorer.perimeter(start,0);
 
 
   //Check if not reach end.
